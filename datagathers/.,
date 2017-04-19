@@ -1,0 +1,63 @@
+#!/usr/bin/env ruby
+
+require 'pp'
+
+pcislots = Hash.new
+
+lspci = "/sbin/lspci"
+
+exit 0 if lspci.empty? # If we cannot find an lspci binary what would be the point ?
+
+if FileTest.exists?(lspci)
+  # Create a hash of all objects
+  # { SLOT_ID -> { ATTRIBUTE => VALUE }, ...}
+  slot=""
+  devices = {}
+  %x{#{lspci} -v -mm -k}.each_line do |line|
+    if not line =~ /^$/ # any empty lines throw away
+      splitted = line.split(/\t/)
+      if splitted[0] =~ /^Slot:$/
+        slot=splitted[1].chomp
+        devices[slot] = {}
+      else
+        devices[slot][splitted[0].chop] = splitted[1].chomp
+      end
+    end
+  end
+
+  counter = 0
+  #devices.each_key do |a|
+  devices.each_pair do |k, v|
+    #pcislots.store("pci_slot_id_#{k}", k)
+    slotdrv = v['Driver']
+    if !slotdrv.nil?
+      pcislots.store("pci_slot_id_#{k}_driver", slotdrv)
+    end
+    slotcls = v['Class']
+    if !slotcls.nil?
+      pcislots.store("pci_slot_id_#{k}_class", slotcls)
+    end
+    slotven = v['Vendor']
+    if !slotven.nil?
+      pcislots.store("pci_slot_id_#{k}_vendor", slotven)
+    end
+    slotdev = v['Device']
+    if !slotdev.nil?
+      pcislots.store("pci_slot_id_#{k}_device", slotdev)
+    end
+    slotsdev = v['SDevice']
+    if !slotsdev.nil?
+      pcislots.store("pci_slot_id_#{k}_sdevice", slotsdev)
+    end
+    slotsven = v['SVendor']
+    if !slotsven.nil?
+      pcislots.store("pci_slot_id_#{k}_svendor", slotsven)
+    end
+    slotphys = v['PhySlot']
+    if !slotphys.nil?
+      pcislots.store("pci_slot_id_#{k}_physical_slot", slotphys)
+    end
+    counter +=1
+  end
+  pp pcislots.sort
+end
